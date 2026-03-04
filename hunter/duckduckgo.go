@@ -17,35 +17,45 @@ func NewDuckDuckGoHunter() *DuckDuckGoHunter {
 
 func (d *DuckDuckGoHunter) SearchDDG(query string) ([]*memory.Lead, error) {
 	c := colly.NewCollector(
-		colly.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"),
+		colly.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"),
 		colly.MaxDepth(1),
 	)
 
 	var leads []*memory.Lead
 
-	c.OnHTML(".result", func(e *colly.HTMLElement) {
-		title := e.ChildText(".result__title")
-		link := e.ChildAttr(".result__url", "href")
-		snippet := e.ChildText(".result__snippet")
-
+	// DDG Lite uses a table-based layout. Each result title and URL is in
+	// <a class="result-link"> and the snippet is in <td class="result-snippet">.
+	c.OnHTML("a.result-link", func(e *colly.HTMLElement) {
+		title := strings.TrimSpace(e.Text)
+		link := e.Attr("href")
 		if title == "" {
 			return
 		}
-		if !strings.HasPrefix(link, "http") {
-			link = "https://" + link
+		if strings.HasPrefix(link, "//") {
+			link = "https:" + link
+		} else if !strings.HasPrefix(link, "http") {
+			return
 		}
 
 		lead := &memory.Lead{
 			Company: title,
 			Website: link,
 			Source:  "duckduckgo",
-			Notes:   snippet,
 			Status:  "raw",
 		}
 		leads = append(leads, lead)
 	})
 
-	searchURL := fmt.Sprintf("https://html.duckduckgo.com/html/?q=%s", url.QueryEscape(query))
+	// Attach snippets to the most recently parsed lead.
+	c.OnHTML("td.result-snippet", func(e *colly.HTMLElement) {
+		snippet := strings.TrimSpace(e.Text)
+		if len(leads) > 0 && leads[len(leads)-1].Notes == "" {
+			leads[len(leads)-1].Notes = snippet
+		}
+	})
+
+	// DDG Lite returns simple static HTML that Colly can parse without JS.
+	searchURL := fmt.Sprintf("https://lite.duckduckgo.com/lite/?q=%s", url.QueryEscape(query))
 	if err := c.Visit(searchURL); err != nil {
 		return nil, err
 	}

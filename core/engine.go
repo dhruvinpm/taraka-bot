@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/dhruvinpm/taraka-bot/analyst"
@@ -133,9 +134,21 @@ func (e *Engine) IsPaused() bool {
 	return e.paused
 }
 
-func (e *Engine) RunHunt(ctx context.Context, country, niche string) error {
+// HuntSummary summarises the results of a hunt across all sources.
+type HuntSummary struct {
+	GoogleCount    int
+	DDGCount       int
+	LinkedInCount  int
+	DirectoryCount int
+	RedditCount    int
+	TotalLeads     int
+	EmailCount     int
+	Errors         []string
+}
+
+func (e *Engine) RunHunt(ctx context.Context, country, niche string) (*HuntSummary, error) {
 	if e.paused {
-		return nil
+		return &HuntSummary{}, nil
 	}
 	if country == "" {
 		country = e.cfg.DefaultCountry
@@ -149,8 +162,34 @@ func (e *Engine) RunHunt(ctx context.Context, country, niche string) error {
 		Mode:     hunter.Gentle,
 		MaxLeads: 50,
 	}
-	_, err := e.hunter.Hunt(ctx, cfg)
-	return err
+	huntResult, err := e.hunter.Hunt(ctx, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	summary := &HuntSummary{
+		GoogleCount:    huntResult.GoogleCount,
+		DDGCount:       huntResult.DDGCount,
+		LinkedInCount:  huntResult.LinkedInCount,
+		DirectoryCount: huntResult.DirectoryCount,
+		RedditCount:    huntResult.RedditCount,
+		TotalLeads:     huntResult.TotalLeads,
+		EmailCount:     huntResult.EmailCount,
+		Errors:         huntResult.Errors,
+	}
+
+	// Automatically run analysis and outreach after a successful hunt.
+	if analyzeErr := e.RunAnalysis(ctx); analyzeErr != nil {
+		log.Printf("post-hunt analysis error: %v", analyzeErr)
+		summary.Errors = append(summary.Errors, fmt.Sprintf("analysis: %v", analyzeErr))
+	}
+
+	if outreachErr := e.RunOutreach(ctx); outreachErr != nil {
+		log.Printf("post-hunt outreach error: %v", outreachErr)
+		summary.Errors = append(summary.Errors, fmt.Sprintf("outreach: %v", outreachErr))
+	}
+
+	return summary, nil
 }
 
 func (e *Engine) RunAnalysis(ctx context.Context) error {

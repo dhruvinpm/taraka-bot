@@ -145,10 +145,11 @@ func runHunt(cmd *cobra.Command, args []string) {
 		niche = args[1]
 	}
 
-	if err := engine.RunHunt(ctx, country, niche); err != nil {
+	summary, err := engine.RunHunt(ctx, country, niche)
+	if err != nil {
 		log.Fatalf("hunt error: %v", err)
 	}
-	fmt.Println("Hunt complete!")
+	fmt.Printf("Hunt complete! Found %d leads (%d with email)\n", summary.TotalLeads, summary.EmailCount)
 }
 
 func runStats(cmd *cobra.Command, args []string) {

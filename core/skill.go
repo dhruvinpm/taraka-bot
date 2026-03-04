@@ -16,7 +16,8 @@ func (s *HuntSkill) Name() string { return "hunt" }
 func (s *HuntSkill) Execute(ctx context.Context, params map[string]interface{}) error {
 	country, _ := params["country"].(string)
 	niche, _ := params["niche"].(string)
-	return s.engine.RunHunt(ctx, country, niche)
+	_, err := s.engine.RunHunt(ctx, country, niche)
+	return err
 }
 
 type AnalyzeSkill struct {
