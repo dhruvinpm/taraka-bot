@@ -21,7 +21,7 @@ func NewPipeline(store *memory.Store, a *analyst.Analyst, engine *Engine) *Pipel
 func (p *Pipeline) Run(ctx context.Context) error {
 	log.Println("pipeline: starting")
 
-	if err := p.engine.RunHunt(ctx, "", ""); err != nil {
+	if _, err := p.engine.RunHunt(ctx, "", ""); err != nil {
 		log.Printf("pipeline hunt error: %v", err)
 	}
 

@@ -37,11 +37,33 @@ func (h *Handlers) HandleHunt(c telebot.Context) error {
 	c.Send("🔍 Starting hunt...")
 	go func() {
 		ctx := context.Background()
-		if err := h.engine.RunHunt(ctx, country, niche); err != nil {
+		summary, err := h.engine.RunHunt(ctx, country, niche)
+		if err != nil {
 			c.Send(fmt.Sprintf("❌ Hunt error: %v", err))
-		} else {
-			c.Send("✅ Hunt complete!")
+			return
 		}
+		msg := fmt.Sprintf(
+			"✅ Hunt complete!\n\n📊 Results by source:\n"+
+				"🌐 Google: %d\n"+
+				"🦆 DuckDuckGo: %d\n"+
+				"💼 LinkedIn: %d\n"+
+				"📂 Directories: %d\n\n"+
+				"📈 Total leads: %d\n"+
+				"📧 With email: %d",
+			summary.GoogleCount,
+			summary.DDGCount,
+			summary.LinkedInCount,
+			summary.DirectoryCount,
+			summary.TotalLeads,
+			summary.EmailCount,
+		)
+		if len(summary.Errors) > 0 {
+			msg += "\n\n⚠️ Errors:\n"
+			for _, e := range summary.Errors {
+				msg += "• " + e + "\n"
+			}
+		}
+		c.Send(msg)
 	}()
 	return nil
 }
