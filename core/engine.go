@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/dhruvinpm/taraka-bot/analyst"
@@ -71,7 +72,7 @@ func New(ctx context.Context, cfg Config) (*Engine, error) {
 
 	pool := browser.NewBrowserPool(3)
 
-	h := hunter.NewHunter(store, pool)
+	h := hunter.NewHunter(store, pool, primaryLLM)
 	a := analyst.NewAnalyst(store)
 
 	var gmailClient *localmail.Client
@@ -133,7 +134,9 @@ func (e *Engine) IsPaused() bool {
 	return e.paused
 }
 
-func (e *Engine) RunHunt(ctx context.Context, country, niche string) error {
+// RunHunt runs the full hunt → analyse → outreach pipeline, sending progress
+// updates via the optional notify callback (used by the Telegram handler).
+func (e *Engine) RunHunt(ctx context.Context, country, niche string, notify func(string)) error {
 	if e.paused {
 		return nil
 	}
@@ -143,14 +146,82 @@ func (e *Engine) RunHunt(ctx context.Context, country, niche string) error {
 	if niche == "" {
 		niche = e.cfg.DefaultNiche
 	}
+
+	send := func(msg string) {
+		log.Println(msg)
+		if notify != nil {
+			notify(msg)
+		}
+	}
+
+	// --- Step 1: Hunt ---
+	send("🔍 Hunting leads...")
 	cfg := hunter.HuntConfig{
 		Country:  country,
 		Niche:    niche,
 		Mode:     hunter.Gentle,
 		MaxLeads: 50,
 	}
-	_, err := e.hunter.Hunt(ctx, cfg)
-	return err
+	result, err := e.hunter.Hunt(ctx, cfg)
+	if err != nil {
+		return err
+	}
+
+	for _, srcErr := range result.Errors {
+		send(fmt.Sprintf("⚠️ Source error: %s", srcErr))
+	}
+
+	rawCount := len(result.Leads)
+	if rawCount == 0 {
+		send("❌ No leads found. Try different keywords.")
+		return nil
+	}
+	send(fmt.Sprintf("📋 Found %d raw leads", rawCount))
+
+	// --- Step 2: Analyse / verify ---
+	send("🔬 Verifying and scoring leads...")
+	leads, err := e.store.GetLeadsByStatus("raw", cfg.MaxLeads)
+	if err != nil {
+		return err
+	}
+	verifiedCount := 0
+	for _, lead := range leads {
+		enriched := e.analyst.Analyze(lead)
+		if err := e.store.UpsertLead(enriched); err != nil {
+			log.Printf("upsert error: %v", err)
+		}
+		if enriched.Status == "verified" {
+			verifiedCount++
+		}
+	}
+	send(fmt.Sprintf("✅ %d verified leads (with valid emails)", verifiedCount))
+
+	if verifiedCount == 0 {
+		send("ℹ️ No leads have verified email addresses yet — check back after sourcing more leads.")
+		return nil
+	}
+
+	// --- Step 3: Outreach ---
+	send("✍️ Composing and sending outreach emails...")
+	verifiedLeads, err := e.store.GetLeadsByStatus("verified", cfg.MaxLeads)
+	if err != nil {
+		return err
+	}
+	sentCount := 0
+	for _, lead := range verifiedLeads {
+		if err := e.diplomat.SendInitialOutreach(ctx, lead); err != nil {
+			log.Printf("outreach error for %s: %v", lead.Email, err)
+		} else {
+			sentCount++
+		}
+	}
+	send(fmt.Sprintf("📧 Sent %d outreach emails", sentCount))
+
+	if err := e.diplomat.ProcessFollowUps(ctx); err != nil {
+		log.Printf("follow-up error: %v", err)
+	}
+
+	return nil
 }
 
 func (e *Engine) RunAnalysis(ctx context.Context) error {
