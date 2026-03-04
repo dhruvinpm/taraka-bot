@@ -33,12 +33,14 @@ func (r *Router) Name() string {
 	return "router"
 }
 
+const connectivityCheckURL = "https://connectivitycheck.gstatic.com/generate_204"
+
 func (r *Router) isOnline() bool {
 	client := &http.Client{Timeout: 3 * time.Second}
-	resp, err := client.Get("https://www.google.com")
+	resp, err := client.Get(connectivityCheckURL)
 	if err != nil {
 		return false
 	}
 	resp.Body.Close()
-	return resp.StatusCode == 200
+	return resp.StatusCode == 204 || resp.StatusCode == 200
 }

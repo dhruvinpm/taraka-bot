@@ -1,6 +1,7 @@
 package browser
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/go-rod/rod"
@@ -38,8 +39,8 @@ func (p *BrowserPool) Get() (*rod.Browser, error) {
 		return b, nil
 	}
 
-	b := rod.New().MustConnect()
-	return b, nil
+	// Pool is at max capacity; return an error so callers can handle gracefully.
+	return nil, fmt.Errorf("browser pool exhausted (max %d)", p.maxSize)
 }
 
 func (p *BrowserPool) Release(b *rod.Browser) {

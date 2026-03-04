@@ -1,7 +1,6 @@
 package gmail
 
 import (
-	"crypto/tls"
 	"fmt"
 	"net/smtp"
 
@@ -32,7 +31,6 @@ func (s *Sender) Send(to, subject, body string) error {
 	m.SetBody("text/plain", body)
 
 	d := gomail.NewDialer(s.config.Host, s.config.Port, s.config.Username, s.config.Password)
-	d.TLSConfig = &tls.Config{InsecureSkipVerify: false, ServerName: s.config.Host}
 	return d.DialAndSend(m)
 }
 
