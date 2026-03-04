@@ -20,7 +20,7 @@ var markdownItalic = regexp.MustCompile(`\*(.+?)\*`)
 var markdownHeader = regexp.MustCompile(`(?m)^#+\s+`)
 var bulletPoint = regexp.MustCompile(`(?m)^[\-\*]\s+`)
 var numberedList = regexp.MustCompile(`(?m)^\d+\.\s+`)
-var emDash = regexp.MustCompile(`—\s*`)
+var emDashPattern = regexp.MustCompile(`—\s*`)
 
 type Humanizer struct{}
 
@@ -38,7 +38,7 @@ func (h *Humanizer) Humanize(text string) string {
 	text = markdownHeader.ReplaceAllString(text, "")
 	text = bulletPoint.ReplaceAllString(text, "")
 	text = numberedList.ReplaceAllString(text, "")
-	text = emDash.ReplaceAllString(text, "- ")
+	text = emDashPattern.ReplaceAllString(text, "- ")
 
 	lines := strings.Split(text, "\n")
 	var cleaned []string

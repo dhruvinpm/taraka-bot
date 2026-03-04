@@ -20,10 +20,10 @@ func NewWarmupManager(startPerDay, incrementPerWeek, maxPerDay int) *WarmupManag
 	}
 }
 
-const hoursPerWeek = 24 * 7
+const warmupHoursPerWeek = 24 * 7
 
 func (w *WarmupManager) GetDailyLimit() int {
-	weeks := int(time.Since(w.startDate).Hours() / hoursPerWeek)
+	weeks := int(time.Since(w.startDate).Hours() / warmupHoursPerWeek)
 	limit := w.startPerDay + (weeks * w.incrementPerWeek)
 	if limit > w.maxPerDay {
 		limit = w.maxPerDay

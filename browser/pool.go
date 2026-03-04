@@ -43,7 +43,7 @@ func (p *BrowserPool) Get() (*rod.Browser, error) {
 	}
 
 	// Pool is at max capacity; return an error so callers can handle gracefully.
-	return nil, fmt.Errorf("browser pool exhausted (max %d)", p.maxSize)
+	return nil, fmt.Errorf("browser pool exhausted (max %d): retry later or increase pool size in config", p.maxSize)
 }
 
 func (p *BrowserPool) Release(b *rod.Browser) {
