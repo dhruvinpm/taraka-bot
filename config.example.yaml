@@ -1,0 +1,35 @@
+telegram:
+  token: "YOUR_TELEGRAM_BOT_TOKEN"
+  admin_chat_id: 0
+
+gemini:
+  api_key: "YOUR_GEMINI_API_KEY"
+  model: "gemini-2.0-flash-lite"
+  daily_limit: 1000
+
+gmail:
+  address: "OpenClawtaraka@gmail.com"
+  smtp_host: "smtp.gmail.com"
+  smtp_port: 587
+  app_password: "YOUR_GMAIL_APP_PASSWORD"
+  oauth_credentials_file: "gmail_credentials.json"
+  oauth_token_file: "gmail_token.json"
+
+llm:
+  local_url: "http://localhost:8080/completion"
+  local_model: "qwen"
+
+database:
+  path: "taraka.db"
+
+crawl:
+  mode: "gentle"
+  
+identity:
+  vault_path: "identity.vault"
+  vault_key: "CHANGE_THIS_VAULT_KEY_32CHARS_MIN"
+
+warmup:
+  start_per_day: 10
+  increment_per_week: 5
+  max_per_day: 50

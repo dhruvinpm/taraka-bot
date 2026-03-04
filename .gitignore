@@ -1,0 +1,7 @@
+config.yaml
+*.db
+*.vault
+gmail_credentials.json
+gmail_token.json
+taraka-bot
+*.log
