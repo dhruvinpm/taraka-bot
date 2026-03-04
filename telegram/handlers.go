@@ -37,10 +37,11 @@ func (h *Handlers) HandleHunt(c telebot.Context) error {
 	c.Send("🔍 Starting hunt...")
 	go func() {
 		ctx := context.Background()
-		if err := h.engine.RunHunt(ctx, country, niche); err != nil {
+		notify := func(msg string) {
+			c.Send(msg)
+		}
+		if err := h.engine.RunHunt(ctx, country, niche, notify); err != nil {
 			c.Send(fmt.Sprintf("❌ Hunt error: %v", err))
-		} else {
-			c.Send("✅ Hunt complete!")
 		}
 	}()
 	return nil

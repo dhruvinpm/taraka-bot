@@ -145,10 +145,10 @@ func runHunt(cmd *cobra.Command, args []string) {
 		niche = args[1]
 	}
 
-	if err := engine.RunHunt(ctx, country, niche); err != nil {
+	notify := func(msg string) { fmt.Println(msg) }
+	if err := engine.RunHunt(ctx, country, niche, notify); err != nil {
 		log.Fatalf("hunt error: %v", err)
 	}
-	fmt.Println("Hunt complete!")
 }
 
 func runStats(cmd *cobra.Command, args []string) {
