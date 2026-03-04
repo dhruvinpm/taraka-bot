@@ -29,7 +29,7 @@ func (f *FollowUpEngine) ProcessFollowUps(ctx context.Context) error {
 
 	for _, lead := range leads {
 		followUpNum := lead.FollowUpsSent + 1
-		if followUpNum > 3 {
+		if followUpNum >= 4 {
 			f.store.UpdateLeadStatus(lead.ID, "exhausted")
 			continue
 		}

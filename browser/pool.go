@@ -33,7 +33,10 @@ func (p *BrowserPool) Get() (*rod.Browser, error) {
 	}
 
 	if len(p.browsers) < p.maxSize {
-		b := rod.New().MustConnect()
+		b := rod.New()
+		if err := b.Connect(); err != nil {
+			return nil, fmt.Errorf("launch browser: %w", err)
+		}
 		p.browsers = append(p.browsers, b)
 		p.inUse[b] = true
 		return b, nil
